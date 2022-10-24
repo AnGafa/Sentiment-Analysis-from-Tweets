@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 import tweepy
 import config
@@ -22,14 +23,14 @@ limit=50
 
 #tweets = tweepy.Cursor(api.search_tweets, q="from:CocaCola AND #CokeStudio", tweet_mode='extended').items(limit)
 #tweets = tweepy.Cursor(api.search_tweets, q="Hurricane (from:NWSNHC OR from:NHC_Atlantic)", tweet_mode='extended').items(limit)
-tweets = tweepy.Cursor(api.search_tweets, q="from:xQc", tweet_mode='extended').items(limit)
+tweets = tweepy.Cursor(api.search_full_archive, label="dev", query="drug (from:nytimes)").items(limit)
 
 columns = ['Time', 'User', 'Tweet']
 data = []
 
 # Iterate through the results and append them to the list
 for tweet in tweets:
-    data.append([tweet.created_at, tweet.user.screen_name, tweet.full_text])
+    data.append([tweet.created_at, tweet.user.name, tweet.text])
 
 # Create a dataframe with the results
 df = pd.DataFrame(data, columns=columns)

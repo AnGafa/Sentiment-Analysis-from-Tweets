@@ -16,13 +16,19 @@ auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
   
 # calling the api 
 api = tweepy.API(auth)
+  
+# fetching the user
+user = api.get_user(screen_name=name)
+  
+# fetching the ID
+ID = user.id_str
+  
+print("The ID of the user is : " + ID)
 
-keyword = 'covid'
-limit=50
+'''keyword = 'covid'
+limit=100
 
-#tweets = tweepy.Cursor(api.search_tweets, q="from:CocaCola AND #CokeStudio", tweet_mode='extended').items(limit)
-#tweets = tweepy.Cursor(api.search_tweets, q="Hurricane (from:NWSNHC OR from:NHC_Atlantic)", tweet_mode='extended').items(limit)
-tweets = tweepy.Cursor(api.search_tweets, q="from:xQc", tweet_mode='extended').items(limit)
+tweets = tweepy.Cursor(api.user_timeline, screen_name=user, q=keyword, tweet_mode='extended').items(limit)
 
 columns = ['Time', 'User', 'Tweet']
 data = []
@@ -35,3 +41,4 @@ for tweet in tweets:
 df = pd.DataFrame(data, columns=columns)
 
 print(df)
+'''

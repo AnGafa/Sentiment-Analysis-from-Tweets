@@ -12,7 +12,7 @@ def get_tweets():
     start_time = "2021-12-10T00:00:00Z"
 
     tweets = client.search_recent_tweets(query=search_query,
-                                        has:media,
+                                        username = "nytimes",
                                         start_time=start_time,
                                         max_results = config.max_results,
                                         expansions="author_id",
@@ -34,7 +34,7 @@ def get_tweets():
 
 try:
     tweetData = get_tweets()
-    engine = create_engine('mysql+mysqldb://root:test123@localhost:1234/twitterScrape', echo=False)
-    tweetData.to_sql(name='tweets', con=engine, if_exists='append', index=False)
+    #engine = create_engine('mysql+mysqldb://root:test123@localhost:1234/twitterScrape', echo=False)
+    #tweetData.to_sql(name='tweets', con=engine, if_exists='append', index=False)
 except Exception as e:
     print("Error while connecting to MySQL", e)
