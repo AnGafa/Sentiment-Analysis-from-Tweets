@@ -2,6 +2,7 @@ import os
 import tweepy
 import config
 import pandas as pd
+import pyodbc
 
 API_KEY = config.API_KEY
 API_KEY_SECRET = config.SECRET_API_KEY
@@ -34,3 +35,23 @@ df.style
 print(df)
 
 df.to_csv('data.csv', mode='a')
+
+def dbConnection():
+    try:
+        conn = pyodbc.connect('Driver={SQL Server};'
+                      'Server=localhost;'
+                      'Database=SentimentAnalysis;'
+                      'Trusted_Connection=yes;')
+ 
+        cursor = conn.cursor()
+        
+        for index, row in df.iterrows():
+            cursor.execute("INSERT INTO dbo.Twitter (Userkey, Tweet)\
+                            Select us.UserId, ?\
+                            from dbo.Users us"\
+                            join dbo., row.Tweet)
+        conn.commit()
+        cursor.close()    
+            
+    except Error as e:
+        print("Error while connecting to db", e)
