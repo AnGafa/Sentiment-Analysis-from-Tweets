@@ -17,3 +17,8 @@ create table Twitter
 		constraint twter_userkey_fk references Users(UserId),
 	Tweet nvarchar(max) not null
 )
+
+If Not Exists(select * from Users where TwitterId=807095)
+Begin
+insert into Users(TwitterId) values (807095)
+End
