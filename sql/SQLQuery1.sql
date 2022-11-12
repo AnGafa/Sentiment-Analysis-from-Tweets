@@ -6,13 +6,13 @@ drop table dbo.Users
 
 create table Users
 (
-	UserId uniqueidentifier primary key default newid(),
-	TwitterId numeric(10,0) not null
+	UserId uniqueidentifier primary key default newsequentialid(),
+	TwitterId numeric(20,0) not null
 )
 
 create table Twitter
 (
-	TweetId uniqueidentifier primary key default newsequentialid(),
+	TweetId int identity(1,1) primary key,
 	UserKey uniqueidentifier not null
 		constraint twter_userkey_fk references Users(UserId),
 	Tweet nvarchar(max) not null

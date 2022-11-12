@@ -24,8 +24,6 @@ client = tweepy.Client( bearer_token= BEARER_TOKEN,
                         access_token_secret=ACCESS_TOKEN_SECRET,
                         return_type='json',
                         wait_on_rate_limit=True)
-  
-query = 'from:xQc'
 
 def convertToDatetime(latestDate):
     def get_date_object(date_string):
@@ -39,18 +37,53 @@ def convertToDatetime(latestDate):
     
     return datetime
 
+def dfConn():
+    try:
+        conn = pyodbc.connect('Driver={SQL Server};'
+                          'Server=Z690-ELDER;'
+                          'Database=SentimentAnalysis;'
+                          'Trusted_Connection=yes;')
+    except pyodbc.Error as e:
+        print("Error while connecting to db", e)
+    return conn
+
+conn = dfConn()
+
+def dbRead(conn):
+    try:
+        cursor = conn.cursor()
+        
+        idList = []
+        
+        #get all the users from the database
+        cursor.execute("SELECT TwitterId FROM dbo.Users")
+        for row in cursor:
+            idList.append(list(map(int, list(row)))) #convert to int and append to list
+        
+        cursor.close()
+            
+    except pyodbc.Error as e:
+        print("Error while reading db", e)
+        
+    return idList
+
+idList = dbRead(conn)
+
+#convert the latest date to a datetime object
 datetime = convertToDatetime(LATEST_DATE)
 
-tweets = client.get_users_tweets(id=807095, tweet_fields=['author_id', 'created_at'], max_results=MAX_RESULTS, start_time=datetime) #3200 max
-
-columns = ['Date', 'User', 'Tweet']
 data = []
 
-# Iterate through the results and append them to the list
-for tweet in tweets[0]:
-    data.append([tweet['created_at'], tweet['author_id'], tweet['text']])
+for id in idList:
+    tweets = client.get_users_tweets(id=id[0], tweet_fields=['author_id', 'created_at'], max_results=100, start_time=datetime) #3200 max
+
+    # Iterate through the results and append them to the list
+    for tweet in tweets[0]:
+        data.append([tweet['created_at'], tweet['author_id'], tweet['text']])
+
 
 # Create a dataframe with the results
+columns = ['Date', 'User', 'Tweet']
 df = pd.DataFrame(data, columns=columns)
 df.style
 print(df)
@@ -71,19 +104,9 @@ def writeLatestDate(latestDate):
 
 writeLatestDate(latestDate)
 
-def dbWrite(df):
+def dbWrite(df, conn):
     try:
-        conn = pyodbc.connect('Driver={SQL Server};'
-                      'Server=Z690-ELDER;'
-                      'Database=SentimentAnalysis;'
-                      'Trusted_Connection=yes;')
- 
         cursor = conn.cursor()
-        
-        #for each unique user in the dataframe
-        for user in df['User'].unique():
-            cursor.execute("insert into dbo.Users(TwitterId) values (?)\
-                        End", row.User)
         
         for index, row in df.iterrows():
             cursor.execute("INSERT INTO dbo.Twitter (Userkey, Tweet)\
@@ -96,6 +119,6 @@ def dbWrite(df):
     except pyodbc.Error as e:
         print("Error while connecting to db", e)
         
-#dbWrite(df)
+dbWrite(df, conn)
 
 print("Done")
