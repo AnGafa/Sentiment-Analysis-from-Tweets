@@ -25,6 +25,7 @@ client = tweepy.Client( bearer_token= BEARER_TOKEN,
                         return_type='json',
                         wait_on_rate_limit=True)
 
+#converts the date to the rfc format
 def convertToDatetime(latestDate):
     def get_date_object(date_string):
         return iso8601.parse_date(date_string)
@@ -37,6 +38,7 @@ def convertToDatetime(latestDate):
     
     return datetime
 
+#connect to db
 def dfConn():
     try:
         conn = pyodbc.connect('Driver={SQL Server};'
@@ -70,12 +72,14 @@ def dbRead(conn):
 idList = dbRead(conn)
 
 #convert the latest date to a datetime object
+#this is the latest date that the tweets will be fetched from to prevent duplicates
 datetime = convertToDatetime(LATEST_DATE)
 
 data = []
 
+#call the api and get the tweets for each user
 for id in idList:
-    tweets = client.get_users_tweets(id=id[0], tweet_fields=['author_id', 'created_at'], max_results=100, start_time=datetime) #3200 max
+    tweets = client.get_users_tweets(id=id[0], tweet_fields=['author_id', 'created_at'], max_results=100, start_time=datetime)
 
     # Iterate through the results and append them to the list
     for tweet in tweets[0]:
@@ -93,6 +97,7 @@ df.to_csv('data.csv', mode='a')
 #get latest created_at date from dataframe
 latestDate = df['Date'].max()
 
+#write latest date to config file
 def writeLatestDate(latestDate):
     with open('config.py', 'r', encoding='utf-8') as file:
         data = file.readlines()
@@ -104,6 +109,7 @@ def writeLatestDate(latestDate):
 
 writeLatestDate(latestDate)
 
+#write tweets to db and close connection
 def dbWrite(df, conn):
     try:
         cursor = conn.cursor()
