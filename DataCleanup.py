@@ -64,14 +64,18 @@ def remove_pattern(text,pattern):
     
     return text
 
-# remove twitter handles (@user)
+#change all tweets to lower case
+combine['Tidy_Tweets'] = combine['Tidy_Tweets'].str.lower()
+#remove twitter handles (@user)
 combine['Tidy_Tweets'] = np.vectorize(remove_pattern)(combine['text'], "@[\w]*")
 #remove special characters, numbers, punctuations
 combine['Tidy_Tweets'] = combine['Tidy_Tweets'].str.replace("[^a-zA-Z#]", " ")
 #remove short words (length < 3)
 combine['Tidy_Tweets'] = combine['Tidy_Tweets'].apply(lambda x: ' '.join([w for w in x.split() if len(w)>3]))
-
+#remove stopwords
 combine['Tidy_Tweets'] = combine['Tidy_Tweets'].apply(lambda x: ' '.join([word for word in x.split() if word not in (sw)]))
+#remove tweets with < 3 words
+combine = combine[combine['Tidy_Tweets'].str.split().str.len().gt(3)]
 
 combine.to_csv('data.csv', mode='w')
 
