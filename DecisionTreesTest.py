@@ -30,15 +30,9 @@ try:
 except pyodbc.Error as e:
     print("Error while connecting to db", e)
 
-train_original = pd.read_csv('./TrainingData/trainingdata2.csv')
-train_original.columns = ['target','id','date','flag','user','text']
-
-train=train_original[['id','text', 'target']]
 
 test = df[['UserKey', 'Tweet']]
 test.columns = ['id', 'text']
-
-del train_original
  
 #region prepare stopwords list
 sw = stopwords.words('english')
@@ -103,30 +97,13 @@ def preprocessTweet(df, sw):
     #df['text'] = df['text'].apply(stem_sentences)
     return df
 
-train = preprocessTweet(train, sw)
 test = preprocessTweet(test, sw)
 
 #decision tree classifier
-x_trainFull, y_trainFull = train.text.values, train['target']
 x_test = test['text']
-
-#split train data into train and validation
-x_train, x_val, y_train, y_val = train_test_split(x_trainFull, y_trainFull, test_size=0.2, random_state=42)
 
 #encode target
 bow_vectorizer = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
-
-bow_train = bow_vectorizer.fit_transform(train['text'])
-df_train_bow = pd.DataFrame(bow_train.todense())
-
-train_bow = bow_train[:]
-train_bow.todense()
-
-bow_val = bow_vectorizer.fit_transform(x_val)
-df_val_bow = pd.DataFrame(bow_val.todense())
-
-val_bow = bow_val[:]
-val_bow.todense()
 
 bow_test = bow_vectorizer.transform(test['text'])
 df_test_bow = pd.DataFrame(bow_test.todense())
@@ -145,26 +122,14 @@ min_samples_split = [2, 5, 10]
 min_samples_leaf = [1, 2, 4]
 max_features = ['sqrt', 'log2']
 
-hyperparameters = dict(criterion=criterion, splitter=splitter, max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, max_features=max_features)
+load_DT_model = pickle.load(open('DT_model.sav', 'rb'))
 
-decision_tree = tree.DecisionTreeClassifier()
-clf = GridSearchCV(decision_tree, hyperparameters, cv=5, verbose=2, n_jobs=-1)
-clf.fit(train_bow, y_trainFull)
-y_pred = clf.predict(val_bow)
-
-acc=accuracy_score(y_val, y_pred)
-print(acc)
-
-#y_pred = clf.predict(test_bow)
-
-#save model
-filename = 'DT_model.sav'
-pickle.dump(clf, open(filename, 'wb'))
+y_pred = load_DT_model.predict(test_bow)
 
 #add sentiment to test dataframe
-#test.assign(Sentiment = y_pred)
+test.assign(Sentiment = y_pred)
 
 #save to csv
-#test.to_csv('results.csv', index=False)
+test.to_csv('results.csv', index=False)
 
 print("done")
