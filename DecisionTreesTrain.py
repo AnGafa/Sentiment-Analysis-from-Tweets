@@ -87,7 +87,7 @@ def preprocessTweet(df, sw):
     #remove empty tweets
     df = df[df.text != '']
     #stemming
-    #df['text'] = df['text'].apply(stem_sentences)
+    df['text'] = df['text'].apply(stem_sentences)
     return df
 
 train = preprocessTweet(train, sw)
@@ -125,23 +125,15 @@ max_features = ['sqrt', 'log2']
 hyperparameters = dict(criterion=criterion, splitter=splitter, max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, max_features=max_features)
 
 decision_tree = tree.DecisionTreeClassifier()
-clf = GridSearchCV(decision_tree, hyperparameters, cv=5, verbose=2, n_jobs=-1)
+clf = GridSearchCV(decision_tree, hyperparameters, cv=10, verbose=2, n_jobs=-1)
 clf.fit(train_bow, y_train)
 y_pred = clf.predict(val_bow)
 
 acc=accuracy_score(y_val, y_pred)
 print(acc)
 
-#y_pred = clf.predict(test_bow)
-
 #save model
 filename = 'DT_model.sav'
 pickle.dump(clf, open(filename, 'wb'))
-
-#add sentiment to test dataframe
-#test.assign(Sentiment = y_pred)
-
-#save to csv
-#test.to_csv('results.csv', index=False)
 
 print("done")

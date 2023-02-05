@@ -72,40 +72,41 @@ def stem_sentences(sentence):
 
 def preprocessTweet(df, sw):
     #remove newlines
-    df['text'] = df['text'].str.replace("\n"," ")
+    df['modText'] = df['modText'].str.replace("\n"," ")
     #turn all text to lowercase
-    df['text'] = df['text'].str.lower()
+    df['modText'] = df['modText'].str.lower()
     # remove twitter handles (@user)
-    df['text'] = np.vectorize(remove_pattern)(df['text'], "@[\w]*")
+    df['modText'] = np.vectorize(remove_pattern)(df['modText'], "@[\w]*")
     #remove links
-    df['text'] = df['text'].str.replace('http\S+|www.\S+', '', case=False)
+    df['modText'] = df['modText'].str.replace('http\S+|www.\S+', '', case=False)
     #remove special characters, numbers, punctuations
-    df['text'] = df['text'].str.replace("[^a-zA-Z#]", " ")
+    df['modText'] = df['modText'].str.replace("[^a-zA-Z#]", " ")
     #remove short words (length < 3)
-    df['text'] = df['text'].apply(lambda x: ' '.join([w for w in x.split() if (len(w)>3 or w == 'no')]))
+    df['modText'] = df['modText'].apply(lambda x: ' '.join([w for w in x.split() if (len(w)>3 or w == 'no')]))
     #remove duplicate tweets - bot prevention
-    df['text'] = df['text'].drop_duplicates(keep=False)
+    df['modText'] = df['modText'].drop_duplicates(keep=False)
     #remove quotes
-    df['text'] = df['text'].str.replace("quot", "")
+    df['modText'] = df['modText'].str.replace("quot", "")
     #remove NANs
     df.dropna(inplace=True)
     #remove stopwords
-    df['text'] = df['text'].apply(lambda x: ' '.join([word for word in x.split() if word not in (sw)]))
+    df['modText'] = df['modText'].apply(lambda x: ' '.join([word for word in x.split() if word not in (sw)]))
     #remove empty tweets
-    df = df[df.text != '']
+    df = df[df.modText != '']
     #stemming
-    #df['text'] = df['text'].apply(stem_sentences)
+    df['modText'] = df['modText'].apply(stem_sentences)
     return df
 
+test['modText'] = test['text']
 test = preprocessTweet(test, sw)
 
 #decision tree classifier
-x_test = test['text']
+x_test = test.modText.values
 
 #encode target
 bow_vectorizer = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
 
-bow_test = bow_vectorizer.transform(test['text'])
+bow_test = bow_vectorizer.fit_transform(x_test)
 df_test_bow = pd.DataFrame(bow_test.todense())
 
 test_bow = bow_test[:]
@@ -113,21 +114,15 @@ test_bow.todense()
 
 y_test = test['id']
 
-#decision trees hyperparameters
-criterion = ['gini', 'entropy']
-splitter = ['best', 'random']
-max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-max_depth.append(None)
-min_samples_split = [2, 5, 10]
-min_samples_leaf = [1, 2, 4]
-max_features = ['sqrt', 'log2']
-
 load_DT_model = pickle.load(open('DT_model.sav', 'rb'))
 
 y_pred = load_DT_model.predict(test_bow)
 
 #add sentiment to test dataframe
-test.assign(Sentiment = y_pred)
+test['sentiment'] = y_pred
+
+#drop modText column
+#test = test.drop('modText', axis=1)
 
 #save to csv
 test.to_csv('results.csv', index=False)
