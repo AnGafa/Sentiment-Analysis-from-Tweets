@@ -12,7 +12,7 @@ from gensim.models import CoherenceModel
 from nltk import PorterStemmer
 import requests
 
-df = pd.read_csv('./results3.csv')
+df = pd.read_csv('./results4.csv')
 
 for i in range(0, len(df)):
     df['topics'][i] = df['topics'][i].replace("\"", "")
@@ -26,7 +26,7 @@ for i in range(0, len(df)):
     df['topics'][i] = df['topics'][i].replace("'", "")
 df['topics'] = df['topics'].apply(lambda x: x[1:-1].split(', '))
 
-api_key = "77307d4d-4d53-4f6b-a7b7-ca1363ed9ed7"
+api_key = "5437184f-6f90-45fa-99d5-a8b7c38ea01c"
 url = "https://api.oneai.com/api/v0/pipeline"
 headers = {
   "api-key": api_key, 
