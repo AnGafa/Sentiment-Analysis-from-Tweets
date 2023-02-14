@@ -96,7 +96,7 @@ train = preprocessTweet(train, sw)
 x_trainFull, y_trainFull = train.text.values, train['target']
 
 #split train data into train and validation
-x_train, x_val, y_train, y_val = train_test_split(x_trainFull, y_trainFull, test_size=0.2, random_state=42)
+x_train, x_val, y_train, y_val = train_test_split(x_trainFull, y_trainFull, test_size=0.2, random_state=42, stratify=y_trainFull)
 
 #encode target
 bow_vectorizer = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
