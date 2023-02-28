@@ -96,22 +96,14 @@ train = preprocessTweet(train, sw)
 x_trainFull, y_trainFull = train.text.values, train['target']
 
 #split train data into train and validation
-x_train, x_val, y_train, y_val = train_test_split(x_trainFull, y_trainFull, test_size=0.2, random_state=42, stratify=y_trainFull)
-
-#encode target
 bow_vectorizer = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
+bow = bow_vectorizer.fit_transform(train['text'])
+df_bow = pd.DataFrame(bow.todense())
 
-bow_train = bow_vectorizer.fit_transform(x_train)
-df_train_bow = pd.DataFrame(bow_train.todense())
-
-train_bow = bow_train[:]
+train_bow = bow[:]
 train_bow.todense()
 
-bow_val = bow_vectorizer.fit_transform(x_val)
-df_val_bow = pd.DataFrame(bow_val.todense())
-
-val_bow = bow_val[:]
-val_bow.todense()
+x_train_bow, x_valid_bow, y_train_bow, y_valid_bow = train_test_split(train_bow,train['target'],test_size=0.2,random_state=42)
 
 #decision trees hyperparameters
 criterion = ['gini', 'entropy']
@@ -125,12 +117,16 @@ max_features = ['sqrt', 'log2']
 hyperparameters = dict(criterion=criterion, splitter=splitter, max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, max_features=max_features)
 
 decision_tree = tree.DecisionTreeClassifier()
-clf = GridSearchCV(decision_tree, hyperparameters, cv=10, verbose=2, n_jobs=-1)
-clf.fit(train_bow, y_train)
-y_pred = clf.predict(val_bow)
+clf = GridSearchCV(decision_tree, hyperparameters, cv=10, verbose=2, n_jobs=9)
+clf.fit(x_train_bow, y_train_bow)
+y_pred = clf.predict(x_valid_bow)
 
-acc=accuracy_score(y_val, y_pred)
+acc=accuracy_score(y_valid_bow, y_pred)
 print(acc)
+
+#               find accuracy and no of observasions per sentiment
+
+#            prevent overfitting
 
 #save model
 filename = 'DT_model.sav'
