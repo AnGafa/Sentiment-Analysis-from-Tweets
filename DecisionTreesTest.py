@@ -125,6 +125,6 @@ test['sentiment'] = y_pred
 #test = test.drop('modText', axis=1)
 
 #save to csv
-test.to_csv('results.csv', index=False)
+#test.to_csv('results.csv', index=False)
 
 print("done")

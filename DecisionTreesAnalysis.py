@@ -13,18 +13,18 @@ import nltk
 from nltk.corpus import stopwords
 from nltk import PorterStemmer
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn import tree
 from sklearn import preprocessing
-from sklearn.preprocessing import OneHotEncoder
+import pickle
 
 train_original = pd.read_csv('./TrainingData/trainingdata2.csv')
 train_original.columns = ['target','id','date','flag','user','text']
 
-train=train_original[['id','text', 'target']]
+test=train_original[['id','text', 'target']]
 
 del train_original
- 
+
 #region prepare stopwords list
 sw = stopwords.words('english')
 
@@ -63,43 +63,77 @@ def stem_sentences(sentence):
 
 def preprocessTweet(df, sw):
     #remove newlines
-    df['text'] = df['text'].str.replace("\n"," ")
+    df['modText'] = df['modText'].str.replace("\n"," ")
     #turn all text to lowercase
-    df['text'] = df['text'].str.lower()
+    df['modText'] = df['modText'].str.lower()
     # remove twitter handles (@user)
-    df['text'] = np.vectorize(remove_pattern)(df['text'], "@[\w]*")
+    df['modText'] = np.vectorize(remove_pattern)(df['modText'], "@[\w]*")
     #remove links
-    df['text'] = df['text'].str.replace('http\S+|www.\S+', '', case=False)
+    df['modText'] = df['modText'].str.replace('http\S+|www.\S+', '', case=False)
     #remove special characters, numbers, punctuations
-    df['text'] = df['text'].str.replace("[^a-zA-Z#]", " ")
+    df['modText'] = df['modText'].str.replace("[^a-zA-Z#]", " ")
     #remove short words (length < 3)
-    df['text'] = df['text'].apply(lambda x: ' '.join([w for w in x.split() if (len(w)>3 or w == 'no')]))
+    df['modText'] = df['modText'].apply(lambda x: ' '.join([w for w in x.split() if (len(w)>3 or w == 'no')]))
     #remove duplicate tweets - bot prevention
-    df['text'] = df['text'].drop_duplicates(keep=False)
+    df['modText'] = df['modText'].drop_duplicates(keep=False)
     #remove quotes
-    df['text'] = df['text'].str.replace("quot", "")
+    df['modText'] = df['modText'].str.replace("quot", "")
     #remove NANs
     df.dropna(inplace=True)
     #remove stopwords
-    df['text'] = df['text'].apply(lambda x: ' '.join([word for word in x.split() if word not in (sw)]))
+    df['modText'] = df['modText'].apply(lambda x: ' '.join([word for word in x.split() if word not in (sw)]))
     #remove empty tweets
-    df = df[df.text != '']
+    df = df[df.modText != '']
     #stemming
-    #df['text'] = df['text'].apply(stem_sentences)
+    df['modText'] = df['modText'].apply(stem_sentences)
     return df
 
-train = preprocessTweet(train, sw)
+test['modText'] = test['text']
+test = preprocessTweet(test, sw)
 
-#decision tree classifier
-x_train,x_test,y_train,y_test=train_test_split(train.text.values, train.target.values, test_size=0.20, random_state=42)
+#split test data into test and validation
+bow_vectorizer = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
+bow = bow_vectorizer.fit_transform(test['modText'])
+df_bow = pd.DataFrame(bow.todense())
 
-#encode text
-myEncoder = OneHotEncoder(categories='auto')
-x_train = myEncoder.fit_transform(x_train.reshape(-1,1))
+test_bow = bow[:]
+test_bow.todense()
 
-clf = tree.DecisionTreeClassifier()
-clf.fit(x_train, y_train)
-y_pred = clf.predict(x_test)
+x_test_bow, x_valid_bow, y_test_bow, y_valid_bow = train_test_split(test_bow,test['target'],test_size=0.3,random_state=42)
 
-acc=accuracy_score(y_test,y_pred)
-print(acc)
+tfidf = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
+tfidf_matrix = tfidf.fit_transform(test['modText'])
+df_tfidf = pd.DataFrame(tfidf_matrix.todense())
+
+test_tfidf_matrix = tfidf_matrix[:]
+test_tfidf_matrix.todense()
+
+x_test_tfidf, x_valid_tfidf, y_test_tfidf, y_valid_tfidf = train_test_split(test_tfidf_matrix,test['target'],test_size=0.3,random_state=42)
+
+load_DT_model = pickle.load(open('DT_model.sav', 'rb'))
+
+y_pred_bow = load_DT_model.predict(x_valid_bow)
+y_pred_tfidf = load_DT_model.predict(x_valid_tfidf)
+
+#print accuracy, precision, recall, f1-score
+acc_bow=accuracy_score(y_valid_bow,y_pred_bow)
+prec_bow = precision_score(y_valid_bow, y_pred_bow, average='macro')
+rec_bow = recall_score(y_valid_bow, y_pred_bow, average='macro')
+f1_bow = f1_score(y_valid_bow, y_pred_bow, average='macro')
+
+#save confusion matrix
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_valid_bow, y_pred_bow)
+cm = pd.DataFrame(cm, index = ['Negative','Neutral','Positive'], columns = ['Negative','Neutral','Positive'])
+cm.to_csv('BOW_confusion_matrix.csv')
+
+print("Accuracy: ", acc_bow)
+print("Precision: ", prec_bow)
+print("Recall: ", rec_bow)
+print("F1-Score: ", f1_bow)
+
+acc_tfidf = accuracy_score(y_valid_tfidf,y_pred_tfidf)
+prec_tfidf = precision_score(y_valid_tfidf, y_pred_tfidf, average='macro')
+rec_tfidf = recall_score(y_valid_tfidf, y_pred_tfidf, average='macro')
+f1_tfidf = f1_score(y_valid_tfidf, y_pred_tfidf, average='macro')
