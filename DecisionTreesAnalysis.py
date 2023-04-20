@@ -121,13 +121,6 @@ prec_bow = precision_score(y_valid_bow, y_pred_bow, average='macro')
 rec_bow = recall_score(y_valid_bow, y_pred_bow, average='macro')
 f1_bow = f1_score(y_valid_bow, y_pred_bow, average='macro')
 
-#save confusion matrix
-from sklearn.metrics import confusion_matrix
-
-cm = confusion_matrix(y_valid_bow, y_pred_bow)
-cm = pd.DataFrame(cm, index = ['Negative','Neutral','Positive'], columns = ['Negative','Neutral','Positive'])
-cm.to_csv('BOW_confusion_matrix.csv')
-
 print("Accuracy: ", acc_bow)
 print("Precision: ", prec_bow)
 print("Recall: ", rec_bow)
@@ -137,3 +130,56 @@ acc_tfidf = accuracy_score(y_valid_tfidf,y_pred_tfidf)
 prec_tfidf = precision_score(y_valid_tfidf, y_pred_tfidf, average='macro')
 rec_tfidf = recall_score(y_valid_tfidf, y_pred_tfidf, average='macro')
 f1_tfidf = f1_score(y_valid_tfidf, y_pred_tfidf, average='macro')
+
+#save confusion matrix to png
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+cm = confusion_matrix(y_valid_tfidf, y_pred_tfidf)
+ax= plt.subplot()
+sns.heatmap(cm, annot=True, ax = ax, fmt='g'); #annot=True to annotate cells
+
+# labels, title and ticks
+
+ax.set_xlabel('Predicted labels');ax.set_ylabel('True labels'); 
+ax.set_title('Confusion Matrix'); 
+ax.xaxis.set_ticklabels(['Negative','Positive']); ax.yaxis.set_ticklabels(['Negative','Positive']);
+
+plt.savefig('confusion_matrix_DT2.png')
+
+#plot a chart comparing the accuracy, precision, recall and f1-score of the two models
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# data to plot
+n_groups = 4
+bow = (acc_bow, prec_bow, rec_bow, f1_bow)
+tfidf = (acc_tfidf, prec_tfidf, rec_tfidf, f1_tfidf)
+
+# create plot
+fig, ax = plt.subplots()
+index = np.arange(n_groups)
+bar_width = 0.35
+opacity = 0.8
+
+rects1 = plt.bar(index, bow, bar_width,
+alpha=opacity,
+color='b',
+label='Bag of Words')
+
+rects2 = plt.bar(index + bar_width, tfidf, bar_width,
+alpha=opacity,
+color='g',
+label='TF-IDF')
+
+plt.xlabel('Metrics')
+plt.ylabel('Scores')
+plt.title('Scores by Metrics')
+plt.xticks(index + bar_width, ('Accuracy', 'Precision', 'Recall', 'F1-Score'))
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+fig.savefig('DT_scores.png')
