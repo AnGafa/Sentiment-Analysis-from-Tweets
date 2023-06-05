@@ -1,25 +1,26 @@
-import pyodbc
-import pandas as pd
-from sqlalchemy.engine import URL
-from sqlalchemy import create_engine
-from sklearn.feature_extraction.text import CountVectorizer
 import re
-import pandas as pd 
-import numpy as np 
-import matplotlib.pyplot as plt 
-import seaborn as sns
 import string
-from sklearn.model_selection import train_test_split
-from nltk.corpus import stopwords
 from collections import Counter
-from keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Reshape, Flatten, concatenate, Input, Conv1D, GlobalMaxPooling1D, Embedding
-from keras import backend
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pyodbc
+import seaborn as sns
 import tensorflow as tf
-from nltk import word_tokenize
 from gensim import models
+from keras import backend
+from keras.layers import (Conv1D, Dense, Dropout, Embedding, Flatten,
+                          GlobalMaxPooling1D, Input, Reshape, concatenate)
+from keras.models import Model, Sequential
+from keras.preprocessing.text import Tokenizer
+from nltk import word_tokenize
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.optimizers import Adam
 
 train_original = pd.read_csv('./TrainingData/trainingdata2.csv')
 train_original.columns = ['target','id','date','flag','user','text']
@@ -110,10 +111,6 @@ all_training_words = [word for tokens in train["tokens"] for word in tokens]
 training_sentence_lengths = [len(tokens) for tokens in test["tokens"]]
 TRAINING_VOCAB = sorted(list(set(all_training_words)))
 
-all_test_words = [word for tokens in test["tokens"] for word in tokens]
-test_sentence_lengths = [len(tokens) for tokens in test["tokens"]]
-TEST_VOCAB = sorted(list(set(all_test_words)))
-
 word2vec_path = 'GoogleNews-vectors-negative300.bin'
 word2vec = models.KeyedVectors.load_word2vec_format(word2vec_path, binary=True)
 
@@ -142,7 +139,6 @@ tokenizer.fit_on_texts(train["text"].tolist())
 training_sequences = tokenizer.texts_to_sequences(train["text"].tolist())
 
 train_word_index = tokenizer.word_index
-print('Found %s unique tokens.' % len(train_word_index))
 
 train_cnn_data = pad_sequences(training_sequences, maxlen=MAX_SEQUENCE_LENGTH)
 
@@ -183,7 +179,7 @@ def ConvNet(embeddings, max_sequence_length, num_words, embedding_dim, labels_in
 
     model = Model(sequence_input, preds)
     model.compile(loss='binary_crossentropy',
-                  optimizer='adam',
+                  optimizer=Adam(learning_rate=0.001),
                   metrics=['acc'])
     model.summary()
     return model
@@ -198,7 +194,7 @@ y_tr = y_train
 model = ConvNet(train_embedding_weights, MAX_SEQUENCE_LENGTH, len(train_word_index)+1, EMBEDDING_DIM, 
 len(list(label_names)))
 
-num_epochs = 3
+num_epochs = 14
 batch_size = 34
 
 hist = model.fit(x_train, y_tr, epochs=num_epochs, validation_split=0.1, shuffle=True, batch_size=batch_size)
@@ -213,5 +209,45 @@ for p in predictions:
     
 print(sum(test['target']==prediction_labels)/len(prediction_labels))
 
+#plot accuracy and loss
+import matplotlib.pyplot as plt
+
+#start epoch from 1
+'''hist.history['acc'].insert(0,0)
+hist.history['loss'].insert(0,0)
+hist.history['val_acc'].insert(0,0)
+hist.history['val_loss'].insert(0,0)'''
+
+plt.style.use('ggplot')
+plt.figure(figsize=(12,5))
+plt.subplot(1,2,1)
+plt.plot(hist.history['acc'])
+plt.plot(hist.history['val_acc'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+#plt.legend(['train', 'val'], loc='upper left')
+
+plt.subplot(1,2,2)
+plt.plot(hist.history['loss'])
+plt.plot(hist.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+#plt.savefig('CNNmodel2000.png')
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+#plot confusion matrix and save it
+from sklearn.metrics import confusion_matrix
+
+plt.figure(figsize=(12,8))
+cm = confusion_matrix(test['target'], prediction_labels)
+ax= plt.subplot()
+hm = sns.heatmap(cm, annot=True, ax = ax, fmt='g'); #annot=True to annotate cells
+fig = hm.get_figure()
+fig.savefig('CNNCM2000.png')
+
 #save model
-model.save('CNNmodel.h5')
+model.save('CNNmodel2000.h5')

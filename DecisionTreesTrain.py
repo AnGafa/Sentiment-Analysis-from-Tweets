@@ -1,24 +1,21 @@
-import pyodbc
-import pandas as pd
-from sqlalchemy.engine import URL
-from sqlalchemy import create_engine
-from sklearn.feature_extraction.text import CountVectorizer
-import re
-import pandas as pd 
-import numpy as np 
-import matplotlib.pyplot as plt 
-import seaborn as sns
-import string
-import nltk
-from nltk.corpus import stopwords
-from nltk import PorterStemmer
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn import tree
-from sklearn import preprocessing
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import GridSearchCV
 import pickle
+import re
+import string
+import matplotlib.pyplot as plt
+import nltk
+import numpy as np
+import pandas as pd
+import pyodbc
+import seaborn as sns
+from nltk import PorterStemmer
+from nltk.corpus import stopwords
+from sklearn import preprocessing, tree
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 
 train_original = pd.read_csv('./TrainingData/trainingdata2.csv')
 train_original.columns = ['target','id','date','flag','user','text']
@@ -95,7 +92,6 @@ train = preprocessTweet(train, sw)
 #decision tree classifier
 x_trainFull, y_trainFull = train.text.values, train['target']
 
-#split train data into train and validation
 bow_vectorizer = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
 bow = bow_vectorizer.fit_transform(train['text'])
 df_bow = pd.DataFrame(bow.todense())
@@ -103,6 +99,7 @@ df_bow = pd.DataFrame(bow.todense())
 train_bow = bow[:]
 train_bow.todense()
 
+#split train data into train and validation
 x_train_bow, x_valid_bow, y_train_bow, y_valid_bow = train_test_split(train_bow,train['target'],test_size=0.2,random_state=42)
 
 #decision trees hyperparameters
@@ -117,19 +114,30 @@ max_features = ['sqrt', 'log2']
 hyperparameters = dict(criterion=criterion, splitter=splitter, max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, max_features=max_features)
 
 decision_tree = tree.DecisionTreeClassifier()
-clf = GridSearchCV(decision_tree, hyperparameters, cv=10, verbose=2, n_jobs=9)
+clf = GridSearchCV(decision_tree, hyperparameters, cv=10, verbose=2, n_jobs=11)
 clf.fit(x_train_bow, y_train_bow)
 y_pred = clf.predict(x_valid_bow)
-
+ 
 acc=accuracy_score(y_valid_bow, y_pred)
-print(acc)
+precision=precision_score(y_valid_bow, y_pred)
+recall=recall_score(y_valid_bow, y_pred)
+f1=f1_score(y_valid_bow, y_pred)
 
-#               find accuracy and no of observasions per sentiment
+print("Accuracy: ", acc)
+print("Precision: ", precision)
+print("Recall: ", recall)
+print("F1: ", f1)
 
-#            prevent overfitting
+#best hyperparameters
+print('Best Criterion:', clf.best_estimator_.get_params()['criterion'])
+print('Best Splitter:', clf.best_estimator_.get_params()['splitter'])
+print('Best Max Depth:', clf.best_estimator_.get_params()['max_depth'])
+print('Best Min Samples Split:', clf.best_estimator_.get_params()['min_samples_split'])
+print('Best Min Samples Leaf:', clf.best_estimator_.get_params()['min_samples_leaf'])
+print('Best Max Features:', clf.best_estimator_.get_params()['max_features'])
 
 #save model
-filename = 'DT_model.sav'
-pickle.dump(clf, open(filename, 'wb'))
+#filename = 'DT_model.sav'
+#pickle.dump(clf, open(filename, 'wb'))
 
 print("done")

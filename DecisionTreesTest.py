@@ -13,7 +13,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk import PorterStemmer
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn import tree
 from sklearn import preprocessing
 from sklearn.preprocessing import OneHotEncoder

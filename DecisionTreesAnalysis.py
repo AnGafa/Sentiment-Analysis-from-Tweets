@@ -101,14 +101,14 @@ test_bow.todense()
 
 x_test_bow, x_valid_bow, y_test_bow, y_valid_bow = train_test_split(test_bow,test['target'],test_size=0.3,random_state=42)
 
-tfidf = CountVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
+tfidf = TfidfVectorizer(max_df=0.90, min_df=2, max_features=1000, stop_words='english')
 tfidf_matrix = tfidf.fit_transform(test['modText'])
 df_tfidf = pd.DataFrame(tfidf_matrix.todense())
 
 test_tfidf_matrix = tfidf_matrix[:]
 test_tfidf_matrix.todense()
 
-x_test_tfidf, x_valid_tfidf, y_test_tfidf, y_valid_tfidf = train_test_split(test_tfidf_matrix,test['target'],test_size=0.3,random_state=42)
+x_test_tfidf, x_valid_tfidf, y_test_tfidf, y_valid_tfidf = train_test_split(test_tfidf_matrix,test['target'],test_size=0.3,random_state=40)
 
 load_DT_model = pickle.load(open('DT_model.sav', 'rb'))
 
@@ -131,6 +131,11 @@ prec_tfidf = precision_score(y_valid_tfidf, y_pred_tfidf, average='macro')
 rec_tfidf = recall_score(y_valid_tfidf, y_pred_tfidf, average='macro')
 f1_tfidf = f1_score(y_valid_tfidf, y_pred_tfidf, average='macro')
 
+print("Accuracy: ", acc_tfidf)
+print("Precision: ", prec_tfidf)
+print("Recall: ", rec_tfidf)
+print("F1-Score: ", f1_tfidf)
+
 #save confusion matrix to png
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
@@ -147,10 +152,33 @@ ax.xaxis.set_ticklabels(['Negative','Positive']); ax.yaxis.set_ticklabels(['Nega
 
 plt.savefig('confusion_matrix_DT2.png')
 
+cm = confusion_matrix(y_valid_bow, y_pred_bow)
+ax= plt.subplot()
+sns.heatmap(cm, annot=True, ax = ax, fmt='g'); #annot=True to annotate cells
+
+# labels, title and ticks
+
+ax.set_xlabel('Predicted labels');ax.set_ylabel('True labels');
+ax.set_title('Confusion Matrix');
+ax.xaxis.set_ticklabels(['Negative','Positive']); ax.yaxis.set_ticklabels(['Negative','Positive']);
+
+plt.savefig('confusion_matrix_DT1.png')
+
 #plot a chart comparing the accuracy, precision, recall and f1-score of the two models
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+#metrics *100
+acc_bow = acc_bow*100
+prec_bow = prec_bow*100
+rec_bow = rec_bow*100
+f1_bow = f1_bow*100
+
+acc_tfidf = acc_tfidf*100
+prec_tfidf = prec_tfidf*100
+rec_tfidf = rec_tfidf*100
+f1_tfidf = f1_tfidf*100
 
 # data to plot
 n_groups = 4
@@ -161,7 +189,7 @@ tfidf = (acc_tfidf, prec_tfidf, rec_tfidf, f1_tfidf)
 fig, ax = plt.subplots()
 index = np.arange(n_groups)
 bar_width = 0.35
-opacity = 0.8
+opacity = 0.9
 
 rects1 = plt.bar(index, bow, bar_width,
 alpha=opacity,
@@ -175,11 +203,9 @@ label='TF-IDF')
 
 plt.xlabel('Metrics')
 plt.ylabel('Scores')
-plt.title('Scores by Metrics')
+plt.title('Scores by metrics and model')
 plt.xticks(index + bar_width, ('Accuracy', 'Precision', 'Recall', 'F1-Score'))
 plt.legend()
 
 plt.tight_layout()
-plt.show()
-
-fig.savefig('DT_scores.png')
+plt.savefig('DT_scores.png')
